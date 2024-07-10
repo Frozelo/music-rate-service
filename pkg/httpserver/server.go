@@ -19,8 +19,9 @@ type Server struct {
 	shutDownTimeOut time.Duration
 }
 
-func New(opts ...Option) *Server {
+func New(handler http.Handler, opts ...Option) *Server {
 	httpServer := &http.Server{
+		Handler:      handler,
 		ReadTimeout:  defaultReadTimeout,
 		WriteTimeout: defaultWriteTimeout,
 		Addr:         defaultAddr,
