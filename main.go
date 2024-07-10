@@ -2,20 +2,30 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 )
 
 func main() {
-	http.ListenAndServe("localhost:8080", routes())
-}
+	httpServer := httpserver.New(httpserver.Port("8080"))
 
-func routes() *http.ServeMux {
-	router := http.NewServeMux()
-	router.HandleFunc("/health", healthHandler)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	return router
-}
+	select {
+	case s := <-interrupt:
+		log.Print("app - Run - signal: " + s.String())
+	case err := <-httpServer.Notify():
+		log.Fatal((fmt.Errorf("app - Run - httpServer.Notify: %w", err)))
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
+	}
+	err := httpServer.Shutdown()
+	if err != nil {
+		log.Fatal(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
+	}
+
 }
