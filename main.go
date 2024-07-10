@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+
 	l := logger.New("debug")
 
 	handler := gin.New()
