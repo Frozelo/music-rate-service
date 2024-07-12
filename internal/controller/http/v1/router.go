@@ -1,32 +1,44 @@
-package v1
+package controller
 
 import (
-	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/Frozelo/music-rate-service/internal/domain/service"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(handler *gin.Engine) {
-	handler.Use(gin.Logger())
-	handler.Use(gin.Recovery())
+type MusicController struct {
+	musicService *service.MusicService
+}
 
-	h := handler.Group("/v1")
-	{
-		h.GET("/heartbeat", heartBeat)
-		h.GET("/greater/:name", greater)
+func NewMusicController(musicService *service.MusicService) *MusicController {
+	return &MusicController{
+		musicService: musicService,
 	}
 }
 
-func heartBeat(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Heartbeat is ok!",
-	})
-}
+func (mc *MusicController) RateMusic(c *gin.Context) {
+	musicId, err := strconv.Atoi(c.Param("musicId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid music ID"})
+		return
+	}
 
-func greater(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("Hello, %s", c.Param("name")),
-	})
+	var request struct {
+		Rate int `json:"rate" binding:"required"`
+	}
 
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = mc.musicService.Rate(musicId, request.Rate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Music rated successfully"})
 }
