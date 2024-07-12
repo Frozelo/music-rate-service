@@ -6,7 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	v1 "github.com/Frozelo/music-rate-service/internal/conrtoller/http/v1"
+	v1 "github.com/Frozelo/music-rate-service/internal/controller/http/v1"
+	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,14 @@ import (
 func main() {
 
 	l := logger.New("debug")
+
+	connString := "-"
+	storage, err := storage.New(connString)
+
+	if err != nil {
+		l.Fatal("Unable to connect to database: %v\n", err)
+	}
+	defer storage.Close()
 
 	handler := gin.New()
 	v1.NewRouter(handler)
@@ -32,7 +41,7 @@ func main() {
 		l.Error((fmt.Errorf("app - Run - httpServer.Notify: %w", err)))
 
 	}
-	err := httpServer.Shutdown()
+	err = httpServer.Shutdown()
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 	}

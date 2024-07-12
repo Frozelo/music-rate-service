@@ -98,6 +98,7 @@ func (l *Logger) log(message string, args ...interface{}) {
 }
 
 func (l *Logger) msg(level string, message interface{}, args ...interface{}) {
+	fmt.Println(level)
 	switch msg := message.(type) {
 	case error:
 		l.log(msg.Error(), args...)
