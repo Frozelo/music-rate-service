@@ -1,8 +1,9 @@
 package entity
 
 type Music struct {
-	Id     int
-	Name   string
-	Author string
-	Rate   int
+	Id         int
+	Name       string
+	Author     string
+	Rate       int
+	Nomination string
 }

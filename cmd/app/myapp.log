@@ -26,3 +26,18 @@
 {"level":"info","time":"2024-07-13T20:04:30+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
 {"level":"info","time":"2024-07-13T20:09:14+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
 {"level":"info","time":"2024-07-13T20:09:16+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T21:47:34+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T21:55:13+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:06:04+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T22:06:52+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:06:53+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T22:07:18+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:07:21+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T22:07:30+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:08:18+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T22:10:30+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:10:32+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T22:44:16+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:44:19+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-13T22:49:19+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-13T22:49:20+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}

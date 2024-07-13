@@ -49,3 +49,14 @@ func (r *musicRepository) Update(music *entity.Music) error {
 	r.musics[music.Id] = music
 	return nil
 }
+
+func (r *musicRepository) Nominate(musicId int, nomination string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	music, exists := r.musics[musicId]
+	if !exists {
+		return errors.New("music not found")
+	}
+	music.Nomination = nomination
+	return nil
+}
