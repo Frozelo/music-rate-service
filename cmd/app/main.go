@@ -9,7 +9,7 @@ import (
 	v1 "github.com/Frozelo/music-rate-service/internal/controller/http/v1"
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
-	"github.com/Frozelo/music-rate-service/internal/repository"
+	memmory_repository "github.com/Frozelo/music-rate-service/internal/repository/memmory"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
 	"github.com/gin-gonic/gin"
@@ -27,22 +27,20 @@ func main() {
 	// }
 	// defer storage.Close()
 
-	musicRepo := repository.NewMusicRepository()
+	musicRepo := memmory_repository.NewMusicRepository()
 	music := &entity.Music{Name: "Song A", Author: "Author A", Rate: 5}
 	musicRepo.Create(music)
 
 	musicService := service.NewMusicService(musicRepo)
-
-	musicController := v1.NewMusicController(musicService)
+	rateService := service.NewRateService()
 
 	handler := gin.New()
-	handler.HandleMethodNotAllowed = true
+	handler.Use(gin.Logger())
+	handler.Use(gin.Recovery())
+
 	apiGroup := handler.Group("/api")
 	{
-		v1Group := apiGroup.Group("/v1")
-		{
-			v1Group.POST("/music/:musicId/rate", musicController.RateMusic)
-		}
+		v1.NewRouter(apiGroup, musicService, rateService)
 	}
 
 	l.Info("starting new http server")

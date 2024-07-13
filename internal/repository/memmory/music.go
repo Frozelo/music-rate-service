@@ -1,4 +1,4 @@
-package repository
+package memmory_repository
 
 import (
 	"errors"
