@@ -2,30 +2,41 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/Frozelo/music-rate-service/config"
 	v1 "github.com/Frozelo/music-rate-service/internal/controller/http/v1"
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
 	memmory_repository "github.com/Frozelo/music-rate-service/internal/repository/memmory"
+	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
+const configPath = "config/config.yml"
+
 func main() {
+	log.Print("Config initialzation")
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatalf("Config initialization error: %s", err)
+	}
+	log.Print("Successful config initialization")
 
-	l := logger.New("debug")
+	l := logger.New(cfg.Log.Level)
+	l.Info("Successful logger initialization")
 
-	// connString := "-"
-	// storage, err := storage.New(connString)
+	storage, err := storage.New(cfg.Database.ConnString)
 
-	// if err != nil {
-	// 	l.Fatal("Unable to connect to database: %v\n", err)
-	// }
-	// defer storage.Close()
+	if err != nil {
+		l.Fatal("Unable to connect to database: %v\n", err)
+	}
+	defer storage.Close()
 
 	musicRepo := memmory_repository.NewMusicRepository()
 	music := &entity.Music{Name: "Song A", Author: "Author A", Rate: 5}
@@ -44,7 +55,8 @@ func main() {
 	}
 
 	l.Info("starting new http server")
-	httpServer := httpserver.New(handler, httpserver.Port("8080"))
+	httpServer := httpserver.New(handler, httpserver.Port(cfg.Server.Port))
+	l.Info("Successful server startup on port %s", cfg.Port)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
@@ -56,7 +68,7 @@ func main() {
 		l.Error((fmt.Errorf("app - Run - httpServer.Notify: %w", err)))
 
 	}
-	err := httpServer.Shutdown()
+	err = httpServer.Shutdown()
 	if err != nil {
 		l.Error(fmt.Errorf("app - Run - httpServer.Shutdown: %w", err))
 	}
