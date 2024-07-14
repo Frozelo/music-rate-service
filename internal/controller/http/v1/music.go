@@ -8,6 +8,8 @@ import (
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 type MusicController struct {
@@ -25,14 +27,20 @@ func NewMusicController(handler *gin.RouterGroup, ms *service.MusicService, rs *
 }
 
 type MusicRateRequest struct {
-	Param1 int `json:"p1" binding:"required"`
-	Param2 int `json:"p2" binding:"required"`
-	Param3 int `json:"p3" binding:"required"`
-	Param4 int `json:"p4" binding:"required"`
+	Param1 int `json:"p1" binding:"required,range1to10"`
+	Param2 int `json:"p2" binding:"required,range1to10"`
+	Param3 int `json:"p3" binding:"required,range1to10"`
+	Param4 int `json:"p4" binding:"required,range1to10"`
 }
 
 type MusicNominateRequest struct {
 	Nomination string `json:"nomination" binding:"required"`
+}
+
+// Custom validator for range 1 to 10
+func range1to10(fl validator.FieldLevel) bool {
+	value := fl.Field().Int()
+	return value >= 1 && value <= 10
 }
 
 func (mc *MusicController) RateMusic(c *gin.Context) {
@@ -96,5 +104,11 @@ func (mc *MusicController) createRateDto(request *MusicRateRequest) *entity.Rate
 		Param2: request.Param2,
 		Param3: request.Param3,
 		Param4: request.Param4,
+	}
+}
+
+func init() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("range1to10", range1to10)
 	}
 }

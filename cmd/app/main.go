@@ -18,11 +18,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const configPath = "config/config.yml"
+const configPath string = "config/config.yml"
 
 func main() {
 	log.Print("Config initialzation")
-	cfg, err := config.New()
+	cfg, err := config.New(configPath)
 	if err != nil {
 		log.Fatalf("Config initialization error: %s", err)
 	}

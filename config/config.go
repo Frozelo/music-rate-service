@@ -34,10 +34,10 @@ type (
 	}
 )
 
-func New() (*Config, error) {
+func New(cfgPath string) (*Config, error) {
 	cfg := &Config{}
 
-	file, err := os.Open("config.yml")
+	file, err := os.Open(cfgPath)
 	if err != nil {
 		return nil, err
 	}
