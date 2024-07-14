@@ -9,9 +9,8 @@ import (
 
 	"github.com/Frozelo/music-rate-service/config"
 	v1 "github.com/Frozelo/music-rate-service/internal/controller/http/v1"
-	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
-	memmory_repository "github.com/Frozelo/music-rate-service/internal/repository/memmory"
+	postgres_repository "github.com/Frozelo/music-rate-service/internal/repository/postgres"
 	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
@@ -38,10 +37,7 @@ func main() {
 	}
 	defer storage.Close()
 
-	musicRepo := memmory_repository.NewMusicRepository()
-	music := &entity.Music{Name: "Song A", Author: "Author A", Rate: 5}
-	musicRepo.Create(music)
-
+	musicRepo := postgres_repository.NewMusicRepository(storage.Conn)
 	musicService := service.NewMusicService(musicRepo)
 	rateService := service.NewRateService()
 

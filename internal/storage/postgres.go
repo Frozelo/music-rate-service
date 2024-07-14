@@ -15,7 +15,7 @@ const (
 )
 
 type Postgres struct {
-	conn         *pgx.Conn
+	Conn         *pgx.Conn
 	connAttempts int
 	connTimeout  time.Duration
 }
@@ -28,7 +28,7 @@ func New(connString string) (*Postgres, error) {
 
 	var err error
 	for pg.connAttempts > 0 {
-		pg.conn, err = pgx.Connect(context.Background(), connString)
+		pg.Conn, err = pgx.Connect(context.Background(), connString)
 		if err == nil {
 			break
 		}
@@ -45,5 +45,5 @@ func New(connString string) (*Postgres, error) {
 }
 
 func (s *Postgres) Close() {
-	s.conn.Close(context.Background())
+	s.Conn.Close(context.Background())
 }

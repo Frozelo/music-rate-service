@@ -22,7 +22,7 @@ func NewMusicController(handler *gin.RouterGroup, ms *service.MusicService, rs *
 	h := handler.Group("/music")
 	{
 		h.POST(":musicId/rate", r.RateMusic)
-		h.POST(":musicId/nominate", r.NominateMusic)
+		// h.POST(":musicId/nominate", r.NominateMusic)
 	}
 }
 
@@ -44,6 +44,7 @@ func range1to10(fl validator.FieldLevel) bool {
 }
 
 func (mc *MusicController) RateMusic(c *gin.Context) {
+	ctx := c.Request.Context()
 	musicId, err := mc.getMusicIdFromParam(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid music ID: " + err.Error()})
@@ -59,7 +60,7 @@ func (mc *MusicController) RateMusic(c *gin.Context) {
 	rateDto := mc.createRateDto(&requestBody)
 	rate := mc.rs.CalculateRate(rateDto)
 
-	if err := mc.ms.Rate(musicId, rate); err != nil {
+	if err := mc.ms.Rate(ctx, musicId, rate); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to rate music: " + err.Error()})
 		return
 	}
@@ -68,27 +69,27 @@ func (mc *MusicController) RateMusic(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
-func (mc *MusicController) NominateMusic(c *gin.Context) {
-	musicId, err := mc.getMusicIdFromParam(c)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid music ID: " + err.Error()})
-		return
-	}
+// func (mc *MusicController) NominateMusic(c *gin.Context) {
+// 	musicId, err := mc.getMusicIdFromParam(c)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid music ID: " + err.Error()})
+// 		return
+// 	}
 
-	var requestBody MusicNominateRequest
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
-		return
-	}
+// 	var requestBody MusicNominateRequest
+// 	if err := c.ShouldBindJSON(&requestBody); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data: " + err.Error()})
+// 		return
+// 	}
 
-	if err := mc.ms.Nominate(musicId, requestBody.Nomination); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to nominate music: " + err.Error()})
-		return
-	}
+// 	if err := mc.ms.Nominate(ctx, musicId, requestBody.Nomination); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to nominate music: " + err.Error()})
+// 		return
+// 	}
 
-	log.Printf("Successfully nominated music with ID %d as %s", musicId, requestBody.Nomination)
-	c.JSON(http.StatusOK, gin.H{"message": "ok"})
-}
+// 	log.Printf("Successfully nominated music with ID %d as %s", musicId, requestBody.Nomination)
+// 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+// }
 
 func (mc *MusicController) getMusicIdFromParam(c *gin.Context) (int, error) {
 	musicId, err := strconv.Atoi(c.Param("musicId"))
