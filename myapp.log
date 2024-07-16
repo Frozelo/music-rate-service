@@ -103,3 +103,6 @@
 {"level":"info","time":"2024-07-15T01:19:44+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
 {"level":"info","time":"2024-07-15T01:19:44+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"Successful server startup on port 8080"}
 {"level":"info","time":"2024-07-15T01:22:04+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"app - Run - signal: interrupt"}
+{"level":"info","time":"2024-07-17T02:17:29+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"Successful logger initialization"}
+{"level":"info","time":"2024-07-17T02:17:29+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"starting new http server"}
+{"level":"info","time":"2024-07-17T02:17:29+07:00","caller":"/Users/ivansizov/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.22.5.darwin-arm64/src/runtime/proc.go:271","message":"Successful server startup on port 8080"}

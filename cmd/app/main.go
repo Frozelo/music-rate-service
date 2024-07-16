@@ -14,7 +14,8 @@ import (
 	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
 const configPath string = "config/config.yml"
@@ -41,17 +42,17 @@ func main() {
 	musicService := service.NewMusicService(musicRepo)
 	rateService := service.NewRateService()
 
-	handler := gin.New()
-	handler.Use(gin.Logger())
-	handler.Use(gin.Recovery())
+	// TODO httprouter realization
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
-	apiGroup := handler.Group("/api")
-	{
-		v1.NewRouter(apiGroup, musicService, rateService)
-	}
+	apiGroup := chi.NewRouter()
+	v1.NewRouter(apiGroup, musicService, rateService)
+	r.Mount("/api", apiGroup)
 
 	l.Info("starting new http server")
-	httpServer := httpserver.New(handler, httpserver.Port(cfg.Server.Port))
+	httpServer := httpserver.New(r, httpserver.Port(cfg.Server.Port))
 	l.Info("Successful server startup on port %s", cfg.Port)
 
 	interrupt := make(chan os.Signal, 1)

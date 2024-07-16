@@ -2,13 +2,13 @@ package v1
 
 import (
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(handler *gin.RouterGroup, ms *service.MusicService, rs *service.RateService) {
+func NewRouter(router chi.Router, ms *service.MusicService, rs *service.RateService) {
 
-	h := handler.Group("v1")
-	{
-		NewMusicController(h, ms, rs)
-	}
+	router.Route("/v1", func(r chi.Router) {
+		NewMusicController(r, ms, rs)
+	})
+
 }
