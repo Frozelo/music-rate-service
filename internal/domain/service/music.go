@@ -21,18 +21,18 @@ func NewMusicService(repo MusicRepository) *MusicService {
 	return &MusicService{repo: repo}
 }
 
-func (s *MusicService) Rate(ctx context.Context, musicId, rate int) error {
+func (s *MusicService) FindMusic(ctx context.Context, musicId int) (*entity.Music, error) {
 	music, err := s.repo.FindById(ctx, musicId)
 	if err != nil {
 		log.Printf("Error finding music by ID %d: %v", musicId, err)
-		return err
+		return nil, err
 	}
-	music.Rate = rate
-	log.Printf("Updating music: %+v", music)
+	return music, err
+}
+
+func (s *MusicService) UpdateMusic(ctx context.Context, music *entity.Music) error {
 	if err := s.repo.Update(ctx, music); err != nil {
-		log.Printf("Error updating music: %v", err)
 		return err
 	}
-	log.Printf("Successfully updated music with ID %d", musicId)
 	return nil
 }
