@@ -22,7 +22,7 @@ func NewMusicController(router chi.Router, mUcase *music_usecase.MusicUsecase, l
 	mc := &MusicController{mUcase: mUcase, logger: log}
 	router.Get("/music", mc.DisplayMusics)
 	router.Post("/music/{musicId}/rate", mc.RateMusic)
-	// router.Post("/music/{musicId}/nominate", mc.NominateMusic)
+	router.Post("/music/{musicId}/nominate", mc.NominateMusic)
 }
 
 type MusicRateRequest struct {
@@ -30,6 +30,10 @@ type MusicRateRequest struct {
 	Param2 int `json:"p2" validate:"required,range1to10"`
 	Param3 int `json:"p3" validate:"required,range1to10"`
 	Param4 int `json:"p4" validate:"required,range1to10"`
+}
+
+type MusicNominateRequest struct {
+	Nomination string `json:"nomination" validate:"required"`
 }
 
 var validate *validator.Validate
@@ -43,7 +47,7 @@ func init() {
 	validate.RegisterValidation("range1to10", range1to10)
 }
 
-func (req *MusicRateRequest) Bind() error {
+func Bind(req any) error {
 	return validate.Struct(req)
 }
 
@@ -60,12 +64,42 @@ func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := requestBody.Bind(); err != nil {
+	if err := Bind(requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
 
 	if err := mc.mUcase.Rate(r.Context(), musicId, mc.createRateDto(&requestBody)); err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+		return
+	}
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   map[string]string{"message": "ok"},
+		Log:    mc.logger,
+	})
+}
+
+func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request) {
+	musicId, err := mc.getMusicIdFromParam(r)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		return
+	}
+
+	var requestBody MusicNominateRequest
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		return
+	}
+
+	if err := Bind(requestBody); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		return
+	}
+
+	if err := mc.mUcase.Nominate(r.Context(), musicId, requestBody.Nomination); err != nil {
 		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
 		return
 	}

@@ -45,3 +45,15 @@ func (u *MusicUsecase) Rate(ctx context.Context, musicId int, rate *entity.Rate)
 	}
 	return nil
 }
+
+func (u *MusicUsecase) Nominate(ctx context.Context, musicId int, nomination string) error {
+	music, err := u.ms.FindMusic(ctx, musicId)
+	if err != nil {
+		return err
+	}
+	music.Nomination = nomination
+	if err = u.ms.UpdateMusic(ctx, music); err != nil {
+		return err
+	}
+	return nil
+}

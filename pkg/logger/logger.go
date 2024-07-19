@@ -8,6 +8,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// ANSI color codes
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+)
+
 // Interface -.
 type Interface interface {
 	Debug(message interface{}, args ...interface{})
@@ -65,12 +74,12 @@ func (l *Logger) Debug(message interface{}, args ...interface{}) {
 
 // Info -.
 func (l *Logger) Info(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.log(colorGreen, message, args...)
 }
 
 // Warn -.
 func (l *Logger) Warn(message string, args ...interface{}) {
-	l.log(message, args...)
+	l.log(colorYellow, message, args...)
 }
 
 // Error -.
@@ -89,22 +98,37 @@ func (l *Logger) Fatal(message interface{}, args ...interface{}) {
 	os.Exit(1)
 }
 
-func (l *Logger) log(message string, args ...interface{}) {
+func (l *Logger) log(color string, message string, args ...interface{}) {
 	if len(args) == 0 {
+		fmt.Println(color + message + colorReset)
 		l.logger.Info().Msg(message)
 	} else {
+		fmt.Printf(color+message+colorReset+"\n", args...)
 		l.logger.Info().Msgf(message, args...)
 	}
 }
 
 func (l *Logger) msg(level string, message interface{}, args ...interface{}) {
-	fmt.Println(level)
+	var color string
+	switch level {
+	case "debug":
+		color = colorBlue
+	case "warn":
+		color = colorYellow
+	case "error":
+		color = colorRed
+	case "fatal":
+		color = colorRed
+	default:
+		color = colorReset
+	}
+
 	switch msg := message.(type) {
 	case error:
-		l.log(msg.Error(), args...)
+		l.log(color, msg.Error(), args...)
 	case string:
-		l.log(msg, args...)
+		l.log(color, msg, args...)
 	default:
-		l.log(fmt.Sprintf("%s message %v has unknown type %v", level, message, msg), args...)
+		l.log(color, fmt.Sprintf("%s message %v has unknown type %v", level, message, msg), args...)
 	}
 }
