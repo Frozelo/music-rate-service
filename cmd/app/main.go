@@ -11,6 +11,7 @@ import (
 	v1 "github.com/Frozelo/music-rate-service/internal/controller/http/v1"
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
 	music_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/music"
+	user_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/user"
 	postgres_repository "github.com/Frozelo/music-rate-service/internal/repository/postgres"
 	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
@@ -44,12 +45,16 @@ func main() {
 	rateService := service.NewRateService()
 	musicUsecase := music_usecase.NewMusicUsecase(musicService, rateService)
 
+	userRepo := postgres_repository.NewUserRepository(storage.Conn)
+	userService := service.NewUserService(userRepo)
+	userUsecase := user_usecase.NewUserUsecase(userService)
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
 	apiGroup := chi.NewRouter()
-	v1.NewRouter(apiGroup, musicUsecase, l)
+	v1.NewRouter(apiGroup, musicUsecase, userUsecase, l)
 	r.Mount("/api", apiGroup)
 
 	l.Info("starting new http server")
