@@ -15,6 +15,42 @@ func NewMusicRepository(db *pgx.Conn) *musicRepository {
 	return &musicRepository{db: db}
 }
 
+func (r *musicRepository) FindById(ctx context.Context, id int) (*entity.Music, error) {
+	query := `SELECT id, name, author, rate FROM musics WHERE id = $1`
+	row := r.db.QueryRow(ctx, query, id)
+
+	var music entity.Music
+
+	if err := row.Scan(&music.Id, &music.Name, &music.Author, &music.Rate); err != nil {
+		return nil, err
+	}
+
+	return &music, nil
+}
+
+func (r *musicRepository) GetAll(ctx context.Context) ([]*entity.Music, error) {
+	query := `SELECT id, name, author, rate FROM music`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var musics []*entity.Music
+	for rows.Next() {
+		var music entity.Music
+		err := rows.Scan(&music.Id, &music.Name, &music.Author, &music.Rate)
+		if err != nil {
+			return nil, err
+		}
+		musics = append(musics, &music)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return musics, nil
+
+}
+
 func (r *musicRepository) Create(ctx context.Context, music *entity.Music) (*entity.Music, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -36,19 +72,6 @@ func (r *musicRepository) Create(ctx context.Context, music *entity.Music) (*ent
 	}
 
 	return &newMusic, nil
-}
-
-func (r *musicRepository) FindById(ctx context.Context, id int) (*entity.Music, error) {
-	query := `SELECT id, name, author, rate FROM musics WHERE id = $1`
-	row := r.db.QueryRow(ctx, query, id)
-
-	var music entity.Music
-
-	if err := row.Scan(&music.Id, &music.Name, &music.Author, &music.Rate); err != nil {
-		return nil, err
-	}
-
-	return &music, nil
 }
 
 func (r *musicRepository) Update(ctx context.Context, music *entity.Music) error {

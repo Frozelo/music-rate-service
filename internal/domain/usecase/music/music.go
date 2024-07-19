@@ -12,6 +12,7 @@ type MusicUsecase struct {
 }
 
 type musicService interface {
+	GetAllMusic(ctx context.Context) ([]*entity.Music, error)
 	FindMusic(ctx context.Context, musicId int) (*entity.Music, error)
 	UpdateMusic(ctx context.Context, music *entity.Music) error
 }
@@ -22,6 +23,14 @@ type rateService interface {
 
 func NewMusicUsecase(ms musicService, rs rateService) *MusicUsecase {
 	return &MusicUsecase{ms: ms, rs: rs}
+}
+
+func (u *MusicUsecase) GetAllMusic(ctx context.Context) ([]*entity.Music, error) {
+	musics, err := u.ms.GetAllMusic(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return musics, err
 }
 
 func (u *MusicUsecase) Rate(ctx context.Context, musicId int, rate *entity.Rate) error {

@@ -49,7 +49,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	apiGroup := chi.NewRouter()
-	v1.NewRouter(apiGroup, musicUsecase)
+	v1.NewRouter(apiGroup, musicUsecase, l)
 	r.Mount("/api", apiGroup)
 
 	l.Info("starting new http server")
