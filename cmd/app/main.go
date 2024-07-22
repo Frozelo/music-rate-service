@@ -12,6 +12,7 @@ import (
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
 	music_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/music"
 	user_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/user"
+	mdl "github.com/Frozelo/music-rate-service/internal/middleware"
 	postgres_repository "github.com/Frozelo/music-rate-service/internal/repository/postgres"
 	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
@@ -20,7 +21,21 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const configPath string = "config/config.yml"
+const configPath string = "/Users/ivansizov/GolandProjects/music-rate-service/config/config.yml"
+
+func setupUserRoutes(userHandler *v1.UserController) chi.Router {
+	router := chi.NewRouter()
+	router.Post("/register", userHandler.CreateUser)
+	router.Post("/auth/login", userHandler.Login)
+	return router
+}
+
+func setupMusicRoutes(musicHandler *v1.MusicController) chi.Router {
+	router := chi.NewRouter()
+	router.Post("/{musicId}/rate", musicHandler.RateMusic)
+	router.Post("/{musicId}/nominate", musicHandler.NominateMusic)
+	return router
+}
 
 func main() {
 	log.Print("Config initialzation")
@@ -44,18 +59,24 @@ func main() {
 	musicService := service.NewMusicService(musicRepo)
 	rateService := service.NewRateService()
 	musicUsecase := music_usecase.NewMusicUsecase(musicService, rateService)
+	musicHandler := v1.NewMusicController(musicUsecase, l)
 
 	userRepo := postgres_repository.NewUserRepository(storage.Conn)
 	userService := service.NewUserService(userRepo)
 	userUsecase := user_usecase.NewUserUsecase(userService)
+	userHandler := v1.NewUserController(userUsecase, l)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	apiGroup := chi.NewRouter()
-	v1.NewRouter(apiGroup, musicUsecase, userUsecase, l)
-	r.Mount("/api", apiGroup)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Mount("/users", setupUserRoutes(userHandler))
+		r.Group(func(r chi.Router) {
+			r.Use(mdl.Auth)
+			r.Mount("/music", setupMusicRoutes(musicHandler))
+		})
+	})
 
 	l.Info("starting new http server")
 	httpServer := httpserver.New(r, httpserver.Port(cfg.Server.Port))

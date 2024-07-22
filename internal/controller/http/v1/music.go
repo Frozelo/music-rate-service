@@ -18,11 +18,8 @@ type MusicController struct {
 	logger logger.Interface
 }
 
-func NewMusicController(router chi.Router, mUcase *music_usecase.MusicUsecase, log logger.Interface) {
-	mc := &MusicController{mUcase: mUcase, logger: log}
-	router.Get("/music", mc.DisplayMusics)
-	router.Post("/music/{musicId}/rate", mc.RateMusic)
-	router.Post("/music/{musicId}/nominate", mc.NominateMusic)
+func NewMusicController(mUcase *music_usecase.MusicUsecase, log logger.Interface) *MusicController {
+	return &MusicController{mUcase: mUcase, logger: log}
 }
 
 type MusicRateRequest struct {
@@ -60,11 +57,6 @@ func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
 
 	var requestBody MusicRateRequest
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
-		return
-	}
-
-	if err := Bind(requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}

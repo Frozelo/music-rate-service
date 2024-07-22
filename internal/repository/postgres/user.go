@@ -2,6 +2,7 @@ package postgres_repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/jackc/pgx/v4"
@@ -53,6 +54,9 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*entity
 
 	var user entity.User
 	if err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

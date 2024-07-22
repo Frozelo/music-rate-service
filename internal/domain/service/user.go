@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"log"
 
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
@@ -32,11 +34,21 @@ func (s *userService) FindUser(ctx context.Context, userId int) (*entity.User, e
 }
 
 func (s *userService) FindUserByEmail(ctx context.Context, email string) (*entity.User, error) {
+	log.Print(email)
 	return s.repo.FindByEmail(ctx, email)
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *entity.User) error {
+	log.Print(user)
 	return s.repo.Create(ctx, user)
+}
+
+func (s *userService) HashPassword(ctx context.Context, password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
 }
 
 func (s *userService) UpdateUser(ctx context.Context, user *entity.User) error {
