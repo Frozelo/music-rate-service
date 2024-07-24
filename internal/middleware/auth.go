@@ -11,7 +11,7 @@ import (
 type contextKey string
 
 const (
-	ContextKeyUserEmail contextKey = "userEmail"
+	ContextKeyUserId contextKey = "userId"
 )
 
 func Auth(nextHandler http.Handler) http.Handler {
@@ -27,7 +27,7 @@ func Auth(nextHandler http.Handler) http.Handler {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-		ctx := context.WithValue(r.Context(), ContextKeyUserEmail, claims.Email)
+		ctx := context.WithValue(r.Context(), ContextKeyUserId, claims.UserId)
 		nextHandler.ServeHTTP(w, r.WithContext(ctx))
 
 	})

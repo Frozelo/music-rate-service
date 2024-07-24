@@ -23,6 +23,13 @@ func NewUserController(uUcase *user_usecase.UserUsecase, log logger.Interface) *
 	return &UserController{uUcase: uUcase, logger: log}
 }
 
+func SetupUserRoutes(userHandler *UserController) chi.Router {
+	router := chi.NewRouter()
+	router.Post("/register", userHandler.CreateUser)
+	router.Post("/auth/login", userHandler.Login)
+	return router
+}
+
 type CreateUserRequest struct {
 	Username string `json:"username" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
@@ -123,7 +130,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := jwt_service.GenerateJWT(authenticatedUser.Email)
+	token, err := jwt_service.GenerateJWT(authenticatedUser)
 	if err != nil {
 		httpserver.WriteError(w, http.StatusInternalServerError, err, uc.logger)
 		return

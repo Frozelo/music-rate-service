@@ -4,20 +4,23 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/golang-jwt/jwt"
 )
 
 var jwtKey = []byte("some secret key")
 
 type Claims struct {
-	Email string `json:"email"`
+	UserId int    `json:"userId"`
+	Email  string `json:"email"`
 	jwt.StandardClaims
 }
 
-func GenerateJWT(email string) (string, error) {
+func GenerateJWT(authUser *entity.User) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
-		Email: email,
+		UserId: authUser.ID,
+		Email:  authUser.Email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},

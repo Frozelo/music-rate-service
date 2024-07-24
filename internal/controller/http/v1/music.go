@@ -22,6 +22,13 @@ func NewMusicController(mUcase *music_usecase.MusicUsecase, log logger.Interface
 	return &MusicController{mUcase: mUcase, logger: log}
 }
 
+func SetupMusicRoutes(musicHandler *MusicController) *chi.Mux {
+	router := chi.NewRouter()
+	router.Post("/{musicId}/rate", musicHandler.RateMusic)
+	router.Post("/{musicId}/nominate", musicHandler.NominateMusic)
+	return router
+}
+
 type MusicRateRequest struct {
 	Param1 int `json:"p1" validate:"required,range1to10"`
 	Param2 int `json:"p2" validate:"required,range1to10"`
