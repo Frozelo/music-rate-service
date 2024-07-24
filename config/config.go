@@ -10,6 +10,7 @@ type (
 	Config struct {
 		App      `yaml:"app"`
 		Server   `yaml:"http"`
+		Oauth    `yaml:"oauth"`
 		Log      `yaml:"logger"`
 		Database `yaml:"postgres"`
 	}
@@ -21,6 +22,14 @@ type (
 	Server struct {
 		Port string `yaml:"port"`
 	}
+
+	Oauth struct {
+		ClientID         string `yaml:"clientId"`
+		ClientSecret     string `yaml:"clientSecret"`
+		RedirectURL      string `yaml:"redirectUrl"`
+		OauthStateString string `yaml:"stateString"`
+	}
+
 	Log struct {
 		Level string `yaml:"log_level"`
 	}

@@ -16,25 +16,17 @@ import (
 	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
+	"github.com/Frozelo/music-rate-service/pkg/oauth"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
-const configPath string = "/Users/ivansizov/GolandProjects/music-rate-service/config/config.yml"
+const configPath string = "config/config.yml"
 
-// func setupUserRoutes(userHandler *v1.UserController) chi.Router {
-// 	router := chi.NewRouter()
-// 	router.Post("/register", userHandler.CreateUser)
-// 	router.Post("/auth/login", userHandler.Login)
-// 	return router
-// }
-
-// func setupMusicRoutes(musicHandler *v1.MusicController) chi.Router {
-// 	router := chi.NewRouter()
-// 	router.Post("/{musicId}/rate", musicHandler.RateMusic)
-// 	router.Post("/{musicId}/nominate", musicHandler.NominateMusic)
-// 	return router
-// }
+type GithubOauthConfig struct {
+	ClientId     string
+	ClientSecret string
+}
 
 func main() {
 	log.Print("Config initialzation")
@@ -70,6 +62,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	v1.NewRouter(r, userHandler, musicHandler)
 
+	oauth.InitOauth(cfg)
 	l.Info("starting new http server")
 	httpServer := httpserver.New(r, httpserver.Port(cfg.Server.Port))
 	l.Info("Successful server startup on port %s", cfg.Port)

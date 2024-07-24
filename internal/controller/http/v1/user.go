@@ -10,6 +10,7 @@ import (
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	jwt_service "github.com/Frozelo/music-rate-service/pkg/jwt"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
+	"github.com/Frozelo/music-rate-service/pkg/oauth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
@@ -26,6 +27,8 @@ func NewUserController(uUcase *user_usecase.UserUsecase, log logger.Interface) *
 func SetupUserRoutes(userHandler *UserController) chi.Router {
 	router := chi.NewRouter()
 	router.Post("/register", userHandler.CreateUser)
+	router.Get("/auth/github/login", oauth.HandleGitHubLogin)
+	router.Get("/auth/github/callback", oauth.HandleGitHubCallback)
 	router.Post("/auth/login", userHandler.Login)
 	return router
 }
