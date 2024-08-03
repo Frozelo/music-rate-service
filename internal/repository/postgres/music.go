@@ -15,17 +15,17 @@ func NewMusicRepository(db *pgx.Conn) *musicRepository {
 	return &musicRepository{db: db}
 }
 
-func (r *musicRepository) FindById(ctx context.Context, id int) (*entity.Music, error) {
+func (r *musicRepository) FindById(ctx context.Context, id int) error {
 	query := `SELECT id, title, artist, genre FROM musics WHERE id = $1`
 	row := r.db.QueryRow(ctx, query, id)
 
 	var music entity.Music
 
 	if err := row.Scan(&music.Id, &music.Name, &music.Artist, &music.Genre); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &music, nil
+	return nil
 }
 
 func (r *musicRepository) GetAll(ctx context.Context) ([]*entity.Music, error) {

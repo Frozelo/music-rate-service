@@ -12,7 +12,7 @@ type MusicService struct {
 }
 
 type MusicRepository interface {
-	FindById(ctx context.Context, id int) (*entity.Music, error)
+	FindById(ctx context.Context, id int) error
 	GetAll(ctx context.Context) ([]*entity.Music, error)
 	Create(ctx context.Context, music *entity.Music) (*entity.Music, error)
 	Update(ctx context.Context, music *entity.Music) error
@@ -22,13 +22,12 @@ func NewMusicService(repo MusicRepository) *MusicService {
 	return &MusicService{repo: repo}
 }
 
-func (s *MusicService) FindMusic(ctx context.Context, musicId int) (*entity.Music, error) {
-	music, err := s.repo.FindById(ctx, musicId)
-	if err != nil {
+func (s *MusicService) FindMusic(ctx context.Context, musicId int) error {
+	if err := s.repo.FindById(ctx, musicId); err != nil {
 		log.Printf("Error finding music by ID %d: %v", musicId, err)
-		return nil, err
+		return err
 	}
-	return music, err
+	return nil
 }
 
 func (s *MusicService) GetAllMusic(ctx context.Context) ([]*entity.Music, error) {

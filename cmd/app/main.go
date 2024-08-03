@@ -47,8 +47,9 @@ func main() {
 	defer storage.Close()
 
 	musicRepo := postgres_repository.NewMusicRepository(storage.Conn)
+	rateRepo := postgres_repository.NewRateRepository(storage.Conn)
 	musicService := service.NewMusicService(musicRepo)
-	rateService := service.NewRateService()
+	rateService := service.NewRateService(rateRepo)
 	musicUsecase := music_usecase.NewMusicUsecase(musicService, rateService)
 	musicHandler := v1.NewMusicController(musicUsecase, l)
 
