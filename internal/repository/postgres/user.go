@@ -63,6 +63,19 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*entity
 	return &user, nil
 }
 
+func (r *userRepository) FindById(ctx context.Context, userId int) (*entity.User, error) {
+	query := `SELECT id, username, email, password FROM users WHERE id=$1`
+	row := r.db.QueryRow(ctx, query, userId)
+	var user entity.User
+	if err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 	query := `INSERT INTO users (username, email, password) VALUES ($1, $2, $3)`
 	_, err := r.db.Exec(ctx, query, user.Username, user.Email, user.Password)

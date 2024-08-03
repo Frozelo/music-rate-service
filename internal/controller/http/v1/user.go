@@ -30,6 +30,7 @@ func SetupUserRoutes(userHandler *UserController) chi.Router {
 	router.Get("/auth/github/login", oauth.HandleGitHubLogin)
 	router.Get("/auth/github/callback", oauth.HandleGitHubCallback)
 	router.Post("/auth/login", userHandler.Login)
+	router.Get("/{userId}/ratings", userHandler.GetUserRatings)
 	return router
 }
 
@@ -199,6 +200,24 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
 		Status: http.StatusOK,
 		Data:   map[string]string{"message": "user deleted"},
+		Log:    uc.logger,
+	})
+}
+
+func (uc *UserController) GetUserRatings(w http.ResponseWriter, r *http.Request) {
+	userId, err := strconv.Atoi(chi.URLParam(r, "userId"))
+	if err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, err, uc.logger)
+		return
+	}
+	ratings, err := uc.uUcase.GetAllUsersRate(r.Context(), userId)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, err, uc.logger)
+		return
+	}
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   ratings,
 		Log:    uc.logger,
 	})
 }

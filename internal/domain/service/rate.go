@@ -11,6 +11,7 @@ type RateService struct {
 
 type RateRepository interface {
 	Create(ctx context.Context, rate *entity.Rating) error
+	GetAllByUserId(ctx context.Context, userId int) ([]*entity.Rating, error)
 }
 
 func NewRateService(repo RateRepository) *RateService {
@@ -18,6 +19,10 @@ func NewRateService(repo RateRepository) *RateService {
 }
 
 const paramCount = 4.0
+
+func (s *RateService) GetAllByUserId(ctx context.Context, userId int) ([]*entity.Rating, error) {
+	return s.repo.GetAllByUserId(ctx, userId)
+}
 
 func (s *RateService) Rate(ctx context.Context, rate *entity.Rating) error {
 	return s.repo.Create(ctx, rate)

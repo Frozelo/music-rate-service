@@ -55,7 +55,7 @@ func main() {
 
 	userRepo := postgres_repository.NewUserRepository(storage.Conn)
 	userService := service.NewUserService(userRepo)
-	userUsecase := user_usecase.NewUserUsecase(userService)
+	userUsecase := user_usecase.NewUserUsecase(userService, rateService)
 	userHandler := v1.NewUserController(userUsecase, l)
 
 	r := chi.NewRouter()

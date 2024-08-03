@@ -12,6 +12,7 @@ type UserRepository interface {
 	GetAll(ctx context.Context) ([]*entity.User, error)
 	Find(ctx context.Context, userId int) (*entity.User, error)
 	FindByEmail(ctx context.Context, email string) (*entity.User, error)
+	FindById(ctx context.Context, userId int) (*entity.User, error)
 	Create(ctx context.Context, user *entity.User) error
 	Update(ctx context.Context, user *entity.User) error
 	Delete(ctx context.Context, userId int) error
@@ -36,6 +37,9 @@ func (s *userService) FindUser(ctx context.Context, userId int) (*entity.User, e
 func (s *userService) FindUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	log.Print(email)
 	return s.repo.FindByEmail(ctx, email)
+}
+func (s *userService) FindUserById(ctx context.Context, userId int) (*entity.User, error) {
+	return s.repo.FindById(ctx, userId)
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *entity.User) error {

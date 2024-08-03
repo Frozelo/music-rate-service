@@ -2,10 +2,12 @@ package v1
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
+	"github.com/Frozelo/music-rate-service/internal/domain/usecase"
 	music_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/music"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
@@ -29,11 +31,16 @@ func SetupMusicRoutes(musicHandler *MusicController) *chi.Mux {
 	return router
 }
 
-type MusicRateRequest struct {
+type ParamRateRequest struct {
 	Param1 int `json:"p1" validate:"required,range1to10"`
 	Param2 int `json:"p2" validate:"required,range1to10"`
 	Param3 int `json:"p3" validate:"required,range1to10"`
 	Param4 int `json:"p4" validate:"required,range1to10"`
+}
+
+type MusicRateRequest struct {
+	Params  ParamRateRequest `json:"params" validate:"required"`
+	Comment string           `json:"comment" validate:"required"`
 }
 
 type MusicNominateRequest struct {
@@ -63,7 +70,7 @@ func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var requestBody MusicRateRequest
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+	if err := mc.bindAndValidateRequest(r, &requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
@@ -88,21 +95,11 @@ func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request)
 	}
 
 	var requestBody MusicNominateRequest
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+	if err := mc.bindAndValidateRequest(r, &requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
-
-	if err := Bind(requestBody); err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
-		return
-	}
-
-	if err := mc.mUcase.Nominate(r.Context(), musicId, requestBody.Nomination); err != nil {
-		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
-		return
-	}
-
+	log.Print(musicId)
 	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
 		Status: http.StatusOK,
 		Data:   map[string]string{"message": "ok"},
@@ -128,11 +125,21 @@ func (mc *MusicController) getMusicIdFromParam(r *http.Request) (int, error) {
 	return strconv.Atoi(chi.URLParam(r, "musicId"))
 }
 
-func (mc *MusicController) createRateDto(req *MusicRateRequest) *entity.Rate {
-	return &entity.Rate{
-		Param1: req.Param1,
-		Param2: req.Param2,
-		Param3: req.Param3,
-		Param4: req.Param4,
+func (mc *MusicController) createRateDto(req *MusicRateRequest) *usecase.MusicRateDto {
+	return &usecase.MusicRateDto{
+		Params: &entity.Rate{
+			Param1: req.Params.Param1,
+			Param2: req.Params.Param2,
+			Param3: req.Params.Param3,
+			Param4: req.Params.Param4,
+		},
+		Comment: req.Comment,
 	}
+}
+
+func (mc *MusicController) bindAndValidateRequest(r *http.Request, req interface{}) error {
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return err
+	}
+	return Bind(req)
 }
