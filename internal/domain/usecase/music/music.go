@@ -2,6 +2,7 @@ package music_usecase
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 )
@@ -39,7 +40,7 @@ func (u *MusicUsecase) Rate(ctx context.Context, musicId int, rate *entity.Rate)
 		return err
 	}
 	calculatedRate := u.rs.CalculateRate(rate)
-	music.Rate = calculatedRate
+	fmt.Println(calculatedRate)
 	if err = u.ms.UpdateMusic(ctx, music); err != nil {
 		return err
 	}
@@ -51,7 +52,6 @@ func (u *MusicUsecase) Nominate(ctx context.Context, musicId int, nomination str
 	if err != nil {
 		return err
 	}
-	music.Nomination = nomination
 	if err = u.ms.UpdateMusic(ctx, music); err != nil {
 		return err
 	}
