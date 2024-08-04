@@ -26,8 +26,12 @@ func NewMusicController(mUcase *music_usecase.MusicUsecase, log logger.Interface
 
 func SetupMusicRoutes(musicHandler *MusicController) *chi.Mux {
 	router := chi.NewRouter()
-	router.Post("/{musicId}/rate", musicHandler.RateMusic)
-	router.Post("/{musicId}/nominate", musicHandler.NominateMusic)
+	{
+		router.Get("/{musicId}/ratings", musicHandler.GetMusicRates)
+		router.Get("/{musicId}/ratings/avg", musicHandler.GetMusicAverageRating)
+		router.Post("/{musicId}/rate", musicHandler.RateMusic)
+		router.Post("/{musicId}/nominate", musicHandler.NominateMusic)
+	}
 	return router
 }
 
@@ -63,19 +67,19 @@ func Bind(req any) error {
 }
 
 func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
-	musicId, err := mc.getMusicIdFromParam(r)
+	musicId, err := getMusicIdFromParam(r)
 	if err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
 
 	var requestBody MusicRateRequest
-	if err := mc.bindAndValidateRequest(r, &requestBody); err != nil {
+	if err := bindAndValidateRequest(r, &requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
 
-	if err := mc.mUcase.Rate(r.Context(), musicId, mc.createRateDto(&requestBody)); err != nil {
+	if err := mc.mUcase.Rate(r.Context(), musicId, createRateDto(&requestBody)); err != nil {
 		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
 		return
 	}
@@ -88,14 +92,14 @@ func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request) {
-	musicId, err := mc.getMusicIdFromParam(r)
+	musicId, err := getMusicIdFromParam(r)
 	if err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
 
 	var requestBody MusicNominateRequest
-	if err := mc.bindAndValidateRequest(r, &requestBody); err != nil {
+	if err := bindAndValidateRequest(r, &requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
 		return
 	}
@@ -121,11 +125,48 @@ func (mc *MusicController) DisplayMusics(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func (mc *MusicController) getMusicIdFromParam(r *http.Request) (int, error) {
+func (mc *MusicController) GetMusicRates(w http.ResponseWriter, r *http.Request) {
+	musicId, err := getMusicIdFromParam(r)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+	}
+	rates, err := mc.mUcase.GetAllMusicRates(r.Context(), musicId)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+	}
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{Status: http.StatusOK, Data: rates, Log: mc.logger})
+}
+
+func (mc *MusicController) GetMusicAverageRating(w http.ResponseWriter, r *http.Request) {
+	musicId, err := strconv.Atoi(chi.URLParam(r, "musicId"))
+	if err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		return
+	}
+
+	averageRating, err := mc.mUcase.GetAverageRating(r.Context(), musicId)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+		return
+	}
+
+	responseData := map[string]any{
+		"musicId":   musicId,
+		"avgRating": averageRating,
+	}
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   responseData,
+		Log:    mc.logger,
+	})
+}
+
+func getMusicIdFromParam(r *http.Request) (int, error) {
 	return strconv.Atoi(chi.URLParam(r, "musicId"))
 }
 
-func (mc *MusicController) createRateDto(req *MusicRateRequest) *usecase.MusicRateDto {
+func createRateDto(req *MusicRateRequest) *usecase.MusicRateDto {
 	return &usecase.MusicRateDto{
 		Params: &entity.Rate{
 			Param1: req.Params.Param1,
@@ -137,7 +178,7 @@ func (mc *MusicController) createRateDto(req *MusicRateRequest) *usecase.MusicRa
 	}
 }
 
-func (mc *MusicController) bindAndValidateRequest(r *http.Request, req interface{}) error {
+func bindAndValidateRequest(r *http.Request, req interface{}) error {
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return err
 	}

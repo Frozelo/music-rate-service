@@ -26,6 +26,7 @@ type musicService interface {
 type rateService interface {
 	CalculateRate(rate *entity.Rate) int
 	Rate(ctx context.Context, rate *entity.Rating) error
+	GetAllByMusicId(ctx context.Context, userId int) ([]*entity.Rating, error)
 }
 
 // NewMusicUsecase creates a new MusicUsecase with the given music and rate services.
@@ -42,6 +43,40 @@ func (u *MusicUsecase) GetAllMusic(ctx context.Context) ([]*entity.Music, error)
 	return musics, nil
 }
 
+// GetAllMusicRates retrieves all rates by users
+func (u *MusicUsecase) GetAllMusicRates(ctx context.Context, musicId int) ([]*entity.Rating, error) {
+	if err := u.ms.FindMusic(ctx, musicId); err != nil {
+		return nil, errors.Wrap(err, "failed to find music with such id")
+	}
+	rates, err := u.rs.GetAllByMusicId(ctx, musicId)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get all music rates")
+	}
+	return rates, nil
+
+}
+
+// GetAverageRating retrieves avg music score
+func (u *MusicUsecase) GetAverageRating(ctx context.Context, musicId int) (float64, error) {
+	if err := u.ms.FindMusic(ctx, musicId); err != nil {
+		return 0, errors.Wrap(err, "failed to find music with such id")
+	}
+	ratings, err := u.rs.GetAllByMusicId(ctx, musicId)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get all music rates")
+	}
+	if len(ratings) == 0 {
+		return 0, nil
+	}
+
+	total := 0
+	for _, rating := range ratings {
+		total += rating.Rating
+	}
+	average := float64(total) / float64(len(ratings))
+	return average, nil
+}
+
 // Rate allows a user to rate a music item.
 func (u *MusicUsecase) Rate(ctx context.Context, musicId int, dto *usecase.MusicRateDto) error {
 	// Retrieve the user ID from the context.
@@ -52,7 +87,7 @@ func (u *MusicUsecase) Rate(ctx context.Context, musicId int, dto *usecase.Music
 
 	// Find the music item.
 	if err := u.ms.FindMusic(ctx, musicId); err != nil {
-		return errors.Wrap(err, "failed to find music")
+		return errors.Wrap(err, "failed to find music with such id")
 	}
 
 	// Calculate the rating.
