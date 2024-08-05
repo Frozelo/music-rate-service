@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	jwt_service "github.com/Frozelo/music-rate-service/pkg/jwt"
 	"log"
 	"os"
 	"os/signal"
@@ -10,15 +11,23 @@ import (
 	"github.com/Frozelo/music-rate-service/config"
 	v1 "github.com/Frozelo/music-rate-service/internal/controller/http/v1"
 	"github.com/Frozelo/music-rate-service/internal/domain/service"
+	music_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/music"
+	user_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/user"
 	postgres_repository "github.com/Frozelo/music-rate-service/internal/repository/postgres"
 	"github.com/Frozelo/music-rate-service/internal/storage"
 	"github.com/Frozelo/music-rate-service/pkg/httpserver"
 	"github.com/Frozelo/music-rate-service/pkg/logger"
+	"github.com/Frozelo/music-rate-service/pkg/oauth"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
 const configPath string = "config/config.yml"
+
+type GithubOauthConfig struct {
+	ClientId     string
+	ClientSecret string
+}
 
 func main() {
 	log.Print("Config initialzation")
@@ -39,18 +48,28 @@ func main() {
 	defer storage.Close()
 
 	musicRepo := postgres_repository.NewMusicRepository(storage.Conn)
+	rateRepo := postgres_repository.NewRateRepository(storage.Conn)
 	musicService := service.NewMusicService(musicRepo)
-	rateService := service.NewRateService()
+	rateService := service.NewRateService(rateRepo)
+	musicUsecase := music_usecase.NewMusicUsecase(musicService, rateService)
+	musicHandler := v1.NewMusicController(musicUsecase, l)
 
-	// TODO httprouter realization
+	userRepo := postgres_repository.NewUserRepository(storage.Conn)
+	userService := service.NewUserService(userRepo)
+	userUsecase := user_usecase.NewUserUsecase(userService, rateService)
+	userHandler := v1.NewUserController(userUsecase, l)
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	v1.NewRouter(r, userHandler, musicHandler)
 
-	apiGroup := chi.NewRouter()
-	v1.NewRouter(apiGroup, musicService, rateService)
-	r.Mount("/api", apiGroup)
+	oauth.InitOauth(cfg)
+	if err := jwt_service.InitJWT(cfg); err != nil {
+		l.Fatal("Unable to initialize JWT: %v\n", err)
+	}
 
+	log.Print("The jwtKey from config is", cfg.JwtAuth.Key)
 	l.Info("starting new http server")
 	httpServer := httpserver.New(r, httpserver.Port(cfg.Server.Port))
 	l.Info("Successful server startup on port %s", cfg.Port)

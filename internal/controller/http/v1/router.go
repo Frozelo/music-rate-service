@@ -1,14 +1,16 @@
 package v1
 
 import (
-	"github.com/Frozelo/music-rate-service/internal/domain/service"
+	mdl "github.com/Frozelo/music-rate-service/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(router chi.Router, ms *service.MusicService, rs *service.RateService) {
-
-	router.Route("/v1", func(r chi.Router) {
-		NewMusicController(r, ms, rs)
+func NewRouter(r chi.Router, userHandler *UserController, musicHandler *MusicController) {
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Mount("/users", SetupUserRoutes(userHandler))
+		r.Group(func(r chi.Router) {
+			r.Use(mdl.Auth)
+			r.Mount("/music", SetupMusicRoutes(musicHandler))
+		})
 	})
-
 }

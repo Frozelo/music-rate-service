@@ -15,6 +15,44 @@ func NewMusicRepository(db *pgx.Conn) *musicRepository {
 	return &musicRepository{db: db}
 }
 
+func (r *musicRepository) FindById(ctx context.Context, id int) error {
+	query := `SELECT id, title, artist, genre FROM musics WHERE id = $1`
+	row := r.db.QueryRow(ctx, query, id)
+
+	var music entity.Music
+
+	if err := row.Scan(&music.Id, &music.Name, &music.Artist, &music.Genre); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *musicRepository) GetAll(ctx context.Context) ([]*entity.Music, error) {
+	query := `
+		SELECT id, title, artist 
+		FROM musics`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var musics []*entity.Music
+	for rows.Next() {
+		var music entity.Music
+		err := rows.Scan(&music.Id, &music.Name, &music.Artist)
+		if err != nil {
+			return nil, err
+		}
+		musics = append(musics, &music)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return musics, nil
+
+}
+
 func (r *musicRepository) Create(ctx context.Context, music *entity.Music) (*entity.Music, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -22,11 +60,14 @@ func (r *musicRepository) Create(ctx context.Context, music *entity.Music) (*ent
 	}
 	defer tx.Rollback(ctx)
 
-	query := `INSERT INTO musics (name, author) VALUES ($1, $2) RETURNING id, name, author, rate`
-	row := tx.QueryRow(ctx, query, music.Name, music.Author)
+	query := `
+		INSERT INTO musics (title, artist)
+		VALUES ($1, $2) 
+		RETURNING id, title, artist`
+	row := tx.QueryRow(ctx, query, music.Name, music.Artist)
 
 	var newMusic entity.Music
-	err = row.Scan(&newMusic.Id, &newMusic.Name, &newMusic.Author, &newMusic.Rate)
+	err = row.Scan(&newMusic.Id, &newMusic.Name, &newMusic.Artist)
 	if err != nil {
 		return nil, err
 	}
@@ -38,19 +79,6 @@ func (r *musicRepository) Create(ctx context.Context, music *entity.Music) (*ent
 	return &newMusic, nil
 }
 
-func (r *musicRepository) FindById(ctx context.Context, id int) (*entity.Music, error) {
-	query := `SELECT id, name, author, rate FROM musics WHERE id = $1`
-	row := r.db.QueryRow(ctx, query, id)
-
-	var music entity.Music
-
-	if err := row.Scan(&music.Id, &music.Name, &music.Author, &music.Rate); err != nil {
-		return nil, err
-	}
-
-	return &music, nil
-}
-
 func (r *musicRepository) Update(ctx context.Context, music *entity.Music) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -60,10 +88,10 @@ func (r *musicRepository) Update(ctx context.Context, music *entity.Music) error
 
 	query := `
         UPDATE musics
-        SET name = $1, author = $2, rate = $3
-        WHERE id = $4
+        SET title = $1, artist = $2
+        WHERE id = $3
     `
-	_, err = tx.Exec(ctx, query, music.Name, music.Author, music.Rate, music.Id)
+	_, err = tx.Exec(ctx, query, music.Name, music.Artist, music.Id)
 	if err != nil {
 		return err
 	}

@@ -1,127 +1,185 @@
 package v1
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
-	"github.com/Frozelo/music-rate-service/internal/domain/service"
+	"github.com/Frozelo/music-rate-service/internal/domain/usecase"
+	music_usecase "github.com/Frozelo/music-rate-service/internal/domain/usecase/music"
+	"github.com/Frozelo/music-rate-service/pkg/httpserver"
+	"github.com/Frozelo/music-rate-service/pkg/logger"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
 
 type MusicController struct {
-	ms *service.MusicService
-	rs *service.RateService
+	mUcase    *music_usecase.MusicUsecase
+	logger    logger.Interface
+	validator *validator.Validate
 }
 
-func NewMusicController(router chi.Router, ms *service.MusicService, rs *service.RateService) {
-	mc := &MusicController{ms: ms, rs: rs}
-	router.Post("/music/{musicId}/rate", mc.RateMusic)
-	// router.Post("/music/{musicId}/nominate", mc.NominateMusic)
+func NewMusicController(mUcase *music_usecase.MusicUsecase, log logger.Interface) *MusicController {
+	return &MusicController{
+		mUcase:    mUcase,
+		logger:    log,
+		validator: validator.New(),
+	}
+}
+
+func SetupMusicRoutes(musicHandler *MusicController) *chi.Mux {
+	router := chi.NewRouter()
+	{
+		router.Get("/{musicId}/ratings", musicHandler.GetMusicRates)
+		router.Get("/{musicId}/ratings/avg", musicHandler.GetMusicAverageRating)
+		router.Post("/{musicId}/rate", musicHandler.RateMusic)
+		router.Post("/{musicId}/nominate", musicHandler.NominateMusic)
+	}
+	return router
+}
+
+type ParamRateRequest struct {
+	Param1 int `json:"p1" validate:"required,min=1,max=10"`
+	Param2 int `json:"p2" validate:"required,min=1,max=10"`
+	Param3 int `json:"p3" validate:"required,min=1,max=10"`
+	Param4 int `json:"p4" validate:"required,min=1,max=10"`
 }
 
 type MusicRateRequest struct {
-	Param1 int `json:"p1" binding:"required,range1to10"`
-	Param2 int `json:"p2" binding:"required,range1to10"`
-	Param3 int `json:"p3" binding:"required,range1to10"`
-	Param4 int `json:"p4" binding:"required,range1to10"`
+	Params  ParamRateRequest `json:"params" validate:"required"`
+	Comment string           `json:"comment" validate:"required"`
 }
 
 type MusicNominateRequest struct {
-	Nomination string `json:"nomination" binding:"required"`
-}
-
-var validate *validator.Validate
-
-// Custom validator for range 1 to 10
-func range1to10(fl validator.FieldLevel) bool {
-	value := fl.Field().Int()
-	return value >= 1 && value <= 10
-}
-
-func init() {
-	validate = validator.New()
-	validate.RegisterValidation("range1to10", range1to10)
-}
-
-func (req *MusicRateRequest) Bind(r *http.Request) error {
-	if err := validate.Struct(req); err != nil {
-		return err
-	}
-	return nil
+	Nomination string `json:"nomination" validate:"required"`
 }
 
 func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	musicId, err := mc.getMusicIdFromParam(r)
+	musicId, err := getMusicIdFromParam(r)
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, map[string]string{"error": "Invalid music ID: " + err.Error()})
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
 		return
 	}
 
 	var requestBody MusicRateRequest
-	if err := render.Bind(r, &requestBody); err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, map[string]string{"error": "Invalid request data: " + err.Error()})
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %w", err), mc.logger)
 		return
 	}
 
-	rateDto := mc.createRateDto(&requestBody)
-	rate := mc.rs.CalculateRate(rateDto)
-
-	if err := mc.ms.Rate(ctx, musicId, rate); err != nil {
-		render.Status(r, http.StatusInternalServerError)
-		render.JSON(w, r, map[string]string{"error": "Failed to rate music: " + err.Error()})
+	if err := mc.validator.Struct(requestBody.Params); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("validation failed: %w", err), mc.logger)
 		return
 	}
 
-	log.Printf("Successfully rated music with ID %d: %+v", musicId, rateDto)
-	render.JSON(w, r, map[string]string{"message": "ok"})
+	if err := mc.mUcase.Rate(r.Context(), musicId, createRateDto(&requestBody)); err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to rate music: %w", err), mc.logger)
+		return
+	}
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   map[string]string{"message": "ok"},
+		Log:    mc.logger,
+	})
 }
 
-// func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request) {
-// 	ctx := r.Context()
-// 	musicId, err := mc.getMusicIdFromParam(r)
-// 	if err != nil {
-// 		render.Status(r, http.StatusBadRequest)
-// 		render.JSON(w, r, map[string]string{"error": "Invalid music ID: " + err.Error()})
-// 		return
-// 	}
+func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request) {
+	musicId, err := getMusicIdFromParam(r)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
+		return
+	}
 
-// 	var requestBody MusicNominateRequest
-// 	if err := render.Bind(r, &requestBody); err != nil {
-// 		render.Status(r, http.StatusBadRequest)
-// 		render.JSON(w, r, map[string]string{"error": "Invalid request data: " + err.Error()})
-// 		return
-// 	}
+	var requestBody MusicNominateRequest
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %w", err), mc.logger)
+		return
+	}
 
-// 	if err := mc.ms.Nominate(ctx, musicId, requestBody.Nomination); err != nil {
-// 		render.Status(r, http.StatusInternalServerError)
-// 		render.JSON(w, r, map[string]string{"error": "Failed to nominate music: " + err.Error()})
-// 		return
-// 	}
+	log.Printf("Music ID: %d, Nomination: %s", musicId, requestBody.Nomination)
 
-// 	log.Printf("Successfully nominated music with ID %d as %s", musicId, requestBody.Nomination)
-// 	render.JSON(w, r, map[string]string{"message": "ok"})
-// }
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   map[string]string{"message": "ok"},
+		Log:    mc.logger,
+	})
+}
 
-func (mc *MusicController) getMusicIdFromParam(r *http.Request) (int, error) {
+func (mc *MusicController) DisplayMusics(w http.ResponseWriter, r *http.Request) {
+	musics, err := mc.mUcase.GetAllMusic(r.Context())
+	if err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to retrieve musics: %w", err), mc.logger)
+		return
+	}
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   musics,
+		Log:    mc.logger,
+	})
+}
+
+func (mc *MusicController) GetMusicRates(w http.ResponseWriter, r *http.Request) {
+	musicId, err := getMusicIdFromParam(r)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
+		return
+	}
+
+	rates, err := mc.mUcase.GetAllMusicRates(r.Context(), musicId)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get music rates: %w", err), mc.logger)
+		return
+	}
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   rates,
+		Log:    mc.logger,
+	})
+}
+
+func (mc *MusicController) GetMusicAverageRating(w http.ResponseWriter, r *http.Request) {
 	musicId, err := strconv.Atoi(chi.URLParam(r, "musicId"))
 	if err != nil {
-		return 0, err
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
+		return
 	}
-	return musicId, nil
+
+	averageRating, err := mc.mUcase.GetAverageRating(r.Context(), musicId)
+	if err != nil {
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get average rating: %w", err), mc.logger)
+		return
+	}
+
+	responseData := map[string]any{
+		"musicId":   musicId,
+		"avgRating": averageRating,
+	}
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   responseData,
+		Log:    mc.logger,
+	})
 }
 
-func (mc *MusicController) createRateDto(request *MusicRateRequest) *entity.Rate {
-	return &entity.Rate{
-		Param1: request.Param1,
-		Param2: request.Param2,
-		Param3: request.Param3,
-		Param4: request.Param4,
+func getMusicIdFromParam(r *http.Request) (int, error) {
+	return strconv.Atoi(chi.URLParam(r, "musicId"))
+}
+
+func createRateDto(req *MusicRateRequest) *usecase.MusicRateDto {
+	return &usecase.MusicRateDto{
+		Params: &entity.Rate{
+			Param1: req.Params.Param1,
+			Param2: req.Params.Param2,
+			Param3: req.Params.Param3,
+			Param4: req.Params.Param4,
+		},
+		Comment: req.Comment,
 	}
 }
