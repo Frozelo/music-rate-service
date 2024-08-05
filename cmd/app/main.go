@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	jwt_service "github.com/Frozelo/music-rate-service/pkg/jwt"
 	"log"
 	"os"
 	"os/signal"
@@ -64,6 +65,11 @@ func main() {
 	v1.NewRouter(r, userHandler, musicHandler)
 
 	oauth.InitOauth(cfg)
+	if err := jwt_service.InitJWT(cfg); err != nil {
+		l.Fatal("Unable to initialize JWT: %v\n", err)
+	}
+
+	log.Print("The jwtKey from config is", cfg.JwtAuth.Key)
 	l.Info("starting new http server")
 	httpServer := httpserver.New(r, httpserver.Port(cfg.Server.Port))
 	l.Info("Successful server startup on port %s", cfg.Port)

@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,12 +17,17 @@ import (
 )
 
 type MusicController struct {
-	mUcase *music_usecase.MusicUsecase
-	logger logger.Interface
+	mUcase    *music_usecase.MusicUsecase
+	logger    logger.Interface
+	validator *validator.Validate
 }
 
 func NewMusicController(mUcase *music_usecase.MusicUsecase, log logger.Interface) *MusicController {
-	return &MusicController{mUcase: mUcase, logger: log}
+	return &MusicController{
+		mUcase:    mUcase,
+		logger:    log,
+		validator: validator.New(),
+	}
 }
 
 func SetupMusicRoutes(musicHandler *MusicController) *chi.Mux {
@@ -36,10 +42,10 @@ func SetupMusicRoutes(musicHandler *MusicController) *chi.Mux {
 }
 
 type ParamRateRequest struct {
-	Param1 int `json:"p1" validate:"required,range1to10"`
-	Param2 int `json:"p2" validate:"required,range1to10"`
-	Param3 int `json:"p3" validate:"required,range1to10"`
-	Param4 int `json:"p4" validate:"required,range1to10"`
+	Param1 int `json:"p1" validate:"required,min=1,max=10"`
+	Param2 int `json:"p2" validate:"required,min=1,max=10"`
+	Param3 int `json:"p3" validate:"required,min=1,max=10"`
+	Param4 int `json:"p4" validate:"required,min=1,max=10"`
 }
 
 type MusicRateRequest struct {
@@ -51,36 +57,26 @@ type MusicNominateRequest struct {
 	Nomination string `json:"nomination" validate:"required"`
 }
 
-var validate *validator.Validate
-
-func range1to10(fl validator.FieldLevel) bool {
-	return fl.Field().Int() >= 1 && fl.Field().Int() <= 10
-}
-
-func init() {
-	validate = validator.New()
-	validate.RegisterValidation("range1to10", range1to10)
-}
-
-func Bind(req any) error {
-	return validate.Struct(req)
-}
-
 func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
 	musicId, err := getMusicIdFromParam(r)
 	if err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
 		return
 	}
 
 	var requestBody MusicRateRequest
-	if err := bindAndValidateRequest(r, &requestBody); err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %w", err), mc.logger)
+		return
+	}
+
+	if err := mc.validator.Struct(requestBody.Params); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("validation failed: %w", err), mc.logger)
 		return
 	}
 
 	if err := mc.mUcase.Rate(r.Context(), musicId, createRateDto(&requestBody)); err != nil {
-		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to rate music: %w", err), mc.logger)
 		return
 	}
 
@@ -94,16 +90,18 @@ func (mc *MusicController) RateMusic(w http.ResponseWriter, r *http.Request) {
 func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request) {
 	musicId, err := getMusicIdFromParam(r)
 	if err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
 		return
 	}
 
 	var requestBody MusicNominateRequest
-	if err := bindAndValidateRequest(r, &requestBody); err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid request body: %w", err), mc.logger)
 		return
 	}
-	log.Print(musicId)
+
+	log.Printf("Music ID: %d, Nomination: %s", musicId, requestBody.Nomination)
+
 	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
 		Status: http.StatusOK,
 		Data:   map[string]string{"message": "ok"},
@@ -114,7 +112,7 @@ func (mc *MusicController) NominateMusic(w http.ResponseWriter, r *http.Request)
 func (mc *MusicController) DisplayMusics(w http.ResponseWriter, r *http.Request) {
 	musics, err := mc.mUcase.GetAllMusic(r.Context())
 	if err != nil {
-		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to retrieve musics: %w", err), mc.logger)
 		return
 	}
 
@@ -128,25 +126,33 @@ func (mc *MusicController) DisplayMusics(w http.ResponseWriter, r *http.Request)
 func (mc *MusicController) GetMusicRates(w http.ResponseWriter, r *http.Request) {
 	musicId, err := getMusicIdFromParam(r)
 	if err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
+		return
 	}
+
 	rates, err := mc.mUcase.GetAllMusicRates(r.Context(), musicId)
 	if err != nil {
-		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get music rates: %w", err), mc.logger)
+		return
 	}
-	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{Status: http.StatusOK, Data: rates, Log: mc.logger})
+
+	httpserver.WriteJSONResponse(w, httpserver.ResponseConfig{
+		Status: http.StatusOK,
+		Data:   rates,
+		Log:    mc.logger,
+	})
 }
 
 func (mc *MusicController) GetMusicAverageRating(w http.ResponseWriter, r *http.Request) {
 	musicId, err := strconv.Atoi(chi.URLParam(r, "musicId"))
 	if err != nil {
-		httpserver.WriteError(w, http.StatusBadRequest, err, mc.logger)
+		httpserver.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid music ID: %w", err), mc.logger)
 		return
 	}
 
 	averageRating, err := mc.mUcase.GetAverageRating(r.Context(), musicId)
 	if err != nil {
-		httpserver.WriteError(w, http.StatusInternalServerError, err, mc.logger)
+		httpserver.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get average rating: %w", err), mc.logger)
 		return
 	}
 
@@ -176,11 +182,4 @@ func createRateDto(req *MusicRateRequest) *usecase.MusicRateDto {
 		},
 		Comment: req.Comment,
 	}
-}
-
-func bindAndValidateRequest(r *http.Request, req interface{}) error {
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		return err
-	}
-	return Bind(req)
 }

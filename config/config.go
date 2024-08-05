@@ -11,6 +11,7 @@ type (
 		App      `yaml:"app"`
 		Server   `yaml:"http"`
 		Oauth    `yaml:"oauth"`
+		JwtAuth  `yaml:"jwtAuth"`
 		Log      `yaml:"logger"`
 		Database `yaml:"postgres"`
 	}
@@ -28,6 +29,9 @@ type (
 		ClientSecret     string `yaml:"clientSecret"`
 		RedirectURL      string `yaml:"redirectUrl"`
 		OauthStateString string `yaml:"stateString"`
+	}
+	JwtAuth struct {
+		Key string `yaml:"key"`
 	}
 
 	Log struct {

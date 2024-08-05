@@ -1,19 +1,30 @@
 package jwt_service
 
 import (
+	"encoding/hex"
 	"errors"
 	"time"
 
+	"github.com/Frozelo/music-rate-service/config"
 	"github.com/Frozelo/music-rate-service/internal/domain/entity"
 	"github.com/golang-jwt/jwt"
 )
-
-var jwtKey = []byte("some secret key")
 
 type Claims struct {
 	UserId int    `json:"userId"`
 	Email  string `json:"email"`
 	jwt.StandardClaims
+}
+
+var jwtKey []byte
+
+func InitJWT(cfg *config.Config) error {
+	key, err := hex.DecodeString(cfg.JwtAuth.Key)
+	if err != nil {
+		panic(err)
+	}
+	jwtKey = key
+	return nil
 }
 
 func GenerateJWT(authUser *entity.User) (string, error) {

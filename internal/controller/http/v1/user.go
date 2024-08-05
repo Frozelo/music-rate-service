@@ -12,12 +12,11 @@ import (
 	"github.com/Frozelo/music-rate-service/pkg/logger"
 	"github.com/Frozelo/music-rate-service/pkg/oauth"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
 )
 
 type UserController struct {
 	uUcase *user_usecase.UserUsecase
-	logger logger.Interface // Добавлен логгер для логирования ошибок и информации
+	logger logger.Interface
 }
 
 func NewUserController(uUcase *user_usecase.UserUsecase, log logger.Interface) *UserController {
@@ -43,14 +42,6 @@ type CreateUserRequest struct {
 type LoginUserRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
-}
-
-func init() {
-	validate = validator.New()
-}
-
-func (req *CreateUserRequest) Bind() error {
-	return validate.Struct(req)
 }
 
 func (uc *UserController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +86,7 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := requestBody.Bind(); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, uc.logger)
 		return
 	}
@@ -163,7 +154,7 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := requestBody.Bind(); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		httpserver.WriteError(w, http.StatusBadRequest, err, uc.logger)
 		return
 	}
